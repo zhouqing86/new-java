@@ -1,7 +1,7 @@
 # 目录
 
 * [前言](README.md)
-* [第一章 Java的新功能](Chapter1/README.md)
+* [第一章 Java的新世界](Chapter1/README.md)
     * [第1节：Java8新功能概要](Chapter1/java8.md)
     * [第2节：Java9新功能概要](Chapter1/java9.md)
     * [第3节：Java10新功能概要](Chapter1/java10.md)
@@ -65,4 +65,5 @@
     * [第2节：打包](Chapter11/package.md)
     * [第3节：Javadoc](Chapter11/javadoc.md)
     * [第4节：logging](Chapter11/logging.md)
+    * [第5节：异常处理](Chapter11/exception.md)
 
