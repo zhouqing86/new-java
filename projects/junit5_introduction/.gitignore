@@ -1,0 +1,15 @@
+# Ignore Gradle project-specific cache directory
+.gradle
+*.iml
+*.ipr
+*.iws
+
+
+# Ignore Gradle build output directory
+build
+out/
+target/
+
+
+# MacOS
+.DS_Store
