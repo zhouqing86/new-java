@@ -1,6 +1,6 @@
 # 第1节：Junit5入门
 
-对于使用过Ruby、Javascript、NodeJS、Python、Scala等语言的程序员来说，交互式工具应该已成为日常必备，这里拿NodeJS的交互式工具作为例子：
+对于使用过Ruby、Javascript、NodeJS、Python、Scala等语言的程序员来说，交互式工具应已成为日常必备，这里拿NodeJS的交互式工具作为例子：
 
 ```javascript
 ⇒  node
@@ -37,10 +37,10 @@ public class CustomStringUtils {
     }
 
     public static void main(String[] args) {
-        // test beautifyString
+        // 调用beautifyString函数
         System.out.println(beautifyString(" hello  world,  new java!  "));
 
-        // test capitalAndLowercaseRest
+        // 调用capitalAndLowercaseRest函数
         System.out.println(capitalAndLowercaseRest("  hELLO  "));
     }
 }
@@ -196,100 +196,112 @@ java -jar lib/junit-platform-console-standalone-1.6.0.jar -cp 'build/main;build/
 
 在上面所展示目录的基础上，可以使用`Gradle`或`Maven`这两个中的任意一个build工具来对项目进行构建、测试、打包的管理。
 
-- 在使用`Gradle`项目中，`build.gradle`中的关键部分:
+### Gradle
 
-  ```groovy
-  dependencies {
-  		//JUnit Jupiter API 提供了注解和断言的实现
-      testImplementation 'org.junit.jupiter:junit-jupiter-api:5.4.2'
-      
-      //JUnit Jupiter Test Engine实现了TestEngine接口，用于发现和执行Junit5单元测试用例，
-      testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.4.2'
-  }
-  test {
-      useJUnitPlatform()
-  }
-  ```
+在使用`Gradle`项目中，`build.gradle`中的关键部分:
 
-  在使用`Gradle`构建的项目中，使用`gradle test`命令就可以执行所有单元测试用例了。
+```groovy
+plugins {
+    id 'java'
+  
+  	//是的在运行`gradle test`时能在命令行打印出好看的测试结果报告
+    id 'com.adarshr.test-logger' version '2.0.0'
+}
+dependencies {
+		//JUnit Jupiter API 提供了注解和断言的实现
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.0'
+    
+    //JUnit Jupiter Test Engine实现了TestEngine接口，用于发现和执行Junit5单元测试用例，
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.6.0'
+}
+test {
+    useJUnitPlatform()
+}
+```
 
-  在`build.gradle`中，可以通过在`test`节点中设置`excludes`的方式来排除对某些测试类的执行：
+> `junit-jupiter`是一个聚合artifact，也可以只在依赖中引入`junit-jupiter`，其就会自动引入`junit-jupiter-api`、`junit-jupiter-params`和 `junit-jupiter-engine`
 
-  ```groovy
-  test {
-      exclude 'com/newjava/junit5/CustomStringUtilsTest.class'
-      useJUnitPlatform()
-  }
-  ```
+在使用`Gradle`构建的项目中，使用`gradle test`命令就可以执行所有单元测试用例了。
 
-  也可以通过Junit5的打标签（基于`@Tag`注解）的方式来确定测试范围，后面的章节在介绍这部分功能。
+在`build.gradle`中，可以通过在`test`节点中设置`excludes`的方式来排除对某些测试类的执行：
 
-  > 关于Gradle的使用在第四章有详细介绍
+```groovy
+test {
+    exclude 'com/newjava/junit5/CustomStringUtilsTest.class'
+    useJUnitPlatform()
+}
+```
 
-- 在使用`Maven`项目中，`pom.xml`中的关键部分:
+也可以通过Junit5的打标签（基于`@Tag`注解）的方式来确定测试范围，后面的章节在介绍这部分功能。
 
-  ```xml
-  <build>
-      <plugins>
-          <plugin>
-              <artifactId>maven-surefire-plugin</artifactId>
-              <version>2.22.2</version>
-          </plugin>
-          <plugin>
-              <artifactId>maven-failsafe-plugin</artifactId>
-              <version>2.22.2</version>
-          </plugin>
-      </plugins>
-  </build>
-  <dependencies>
-      <dependency>
-          <groupId>org.junit.jupiter</groupId>
-          <artifactId>junit-jupiter-api</artifactId>
-          <version>5.6.0</version>
-          <scope>test</scope>
-      </dependency>
-      <dependency>
-          <groupId>org.junit.jupiter</groupId>
-          <artifactId>junit-jupiter-engine</artifactId>
-          <version>5.6.0</version>
-          <scope>test</scope>
-      </dependency>
-  </dependencies>
-  ```
+> 关于Gradle的使用在第四章有详细介绍
 
-  在使用`Maven`构建的项目中，使用`mvn test`命令就可以执行所有单元测试用例了。
+### Maven
 
-  在`pom.xml`中，可以通过对`maven-surefire-plugin`的设置来排除对某些测试类的执行：
+在使用`Maven`项目中，`pom.xml`中的关键部分:
 
-  ```xml
-  <build>
-      <plugins>
-          <plugin>
-              <artifactId>maven-surefire-plugin</artifactId>
-              <version>2.22.2</version>
-              <configuration>
-                  <excludes>
-                      <exclude>com/newjava/junit5/CustomStringUtilsTest*</exclude>
-                  </excludes>
-              </configuration>
-          </plugin>
-      </plugins>
-  </build>
-  ```
+```xml
+<build>
+    <plugins>
+        <plugin>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <version>2.22.2</version>
+        </plugin>
+        <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <version>2.22.2</version>
+        </plugin>
+    </plugins>
+</build>
+<dependencies>
+    <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter</artifactId>
+        <version>5.6.0</version>
+        <scope>test</scope>
+    </dependency>
+    <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter-engine</artifactId>
+        <version>5.6.0</version>
+        <scope>test</scope>
+    </dependency>
+</dependencies>
+```
 
-  `maven-surefire-plugin`也支持对Junit5的注解`@Tags`的处理。
+在使用`Maven`构建的项目中，使用`mvn test`命令就可以执行所有单元测试用例了。
 
-  ```xml
-  <plugin>
-      <groupId>org.apache.maven.plugins</groupId>
-      <artifactId>maven-surefire-plugin</artifactId>
-      <version>2.22.2</version>
-      <configuration>
-          <groups>acceptance | !feature-a</groups>
-          <excludedGroups>integration, regression</excludedGroups>
-      </configuration>
-  </plugin>
-  ```
+在`pom.xml`中，可以通过对`maven-surefire-plugin`的设置来排除对某些测试类的执行：
+
+```xml
+<build>
+    <plugins>
+        <plugin>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <version>2.22.2</version>
+            <configuration>
+                <excludes>
+                    <exclude>com/newjava/junit5/CustomStringUtilsTest*</exclude>
+                </excludes>
+            </configuration>
+        </plugin>
+    </plugins>
+</build>
+```
+
+`maven-surefire-plugin`也支持对Junit5的注解`@Tags`的处理。
+
+```xml
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-surefire-plugin</artifactId>
+    <version>2.22.2</version>
+    <configuration>
+        <groups>acceptance | !feature-a</groups>
+        <excludedGroups>integration, regression</excludedGroups>
+    </configuration>
+</plugin>
+```
 
 ## 使用IDE运行单元测试
 

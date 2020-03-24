@@ -24,12 +24,20 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.4.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.4.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.4.2'
 }
 test {
-    exclude 'com/newjava/junit5/CustomStringUtilsTest.class'
-    useJUnitPlatform()
+    String itags = System.getProperty("includeTags");
+    String etags = System.getProperty("excludeTags");
+    useJUnitPlatform{
+        if (itags) {
+            includeTags  itags
+        }
+        if (etags) {
+            excludeTags  etags
+        }
+    }
 }
 
 application {
