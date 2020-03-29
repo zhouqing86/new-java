@@ -1,0 +1,4 @@
+# Abbreviation, Zone Name, GMT Offset
+CST, Asia/Shanghai, + 08:00
+SHANGHAI, Asia/Shanghai, + 08:00
+ART, America/Argentina/Buenos_Aires, - 03:00

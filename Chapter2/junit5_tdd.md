@@ -1,6 +1,6 @@
 # 第4节：测试驱动开发
 
-笔者认为，关于如何做测试驱动开发，最好的讲授方式是一对一的结对编程；其次是现场一对多教学或视频教学的的方式。用文字来描述测试驱动开发的过程是下策，大多数人是没有耐心去仔细研究文字描述的测试驱动开发的过程的，因为文字描述起来终究是比较啰嗦不直观。
+关于如何讲授测试驱动开发，笔者认为最好的方式是一对一的结对编程；其次是现场一对多教学或视频教学的的方式。用文字来描述测试驱动开发的过程是下策，大多数人是没有耐心去仔细研究文字描述的测试驱动开发的过程的，因为文字描述起来终究是比较啰嗦不直观。
 
 但对于书籍来说，唯一能够选择的只有文字、代码或图形。笔者恳求读者耐心的把本章节看完，感受测试驱动开发的过程，看完本节前先不急着自己去实践。如果有读者读完本节后，能够在自己的项目中开始做一些尝试，那就不枉笔者在这节上所花费的功夫了。
 
@@ -25,9 +25,9 @@ EET, Africa/Cairo, + 02:00
 
 理解了需求后，笔者就开始测试驱动开发了，请紧跟笔者的思绪。
 
-#### 拆解需求成粗粒度任务
+#### 拆解需求
 
-对于上面的需求，笔者将其先拆分成两个任务：
+对于上面的需求，笔者将其先拆解成成两个比较粗粒度的任务：
 
 - T1：输入文件的处理
 - T2：根据输入计算获取对应的`Zone Name`与`GMT Offset`的组合
@@ -77,7 +77,7 @@ public class ZoneInfo {
 
 #### 任务 T2
 
-##### 拆解T2
+##### 拆解
 
 基于T3，T2的输入是`List<ZoneInfo>`和一个用户输入的`abbreviation`，返回是`Zone Name`与`GMT Offset`的组合，笔者将T2拆解为：
 
@@ -563,7 +563,444 @@ T2任务的到这基本就结束了，代码虽然变得越来越庞大，但是
 
 > 在描述过程中笔者一直强调IDEA的快捷键，是笔者忍不住通过这种重复啰嗦来强调快捷键的使用，其能大大提高工作效率，也能提升程序员编码时的幸福感。谁说写代码时指尖精准飞舞就不是一门艺术呢？
 
+#### 任务 T1
 
+T1：输入文件的处理，将文本文件的内容转换成一个`List<ZoneInfo>`。
 
+##### 拆解
 
+任务T1比任务T2拆解难度更小一些：
+
+- T1-1：读取文件的所有行，解析成`List<ZoneInfo>`
+- T1-2：针对一个字符串（如文件中的一行），生成ZoneInfo对象
+- T1-3：集成T1-1与T1-2，对`List<ZoneInfo>`里的所有`Zone Name`相同的元素进行聚合
+
+> 基于对于任务T2的测试驱动开发过程的详细描述，有了对T1的任务拆解，你是否可以尝试独立进行测试驱动开发的尝试呢？
+
+##### 任务 T1-2
+
+第一个验收测试用例：
+
+```java
+@ParameterizedTest
+@CsvSource({
+        "'CST, Asia/Shanghai, + 08:00', CST, Asia/Shanghai, + 08:00",
+  			"' CST  ,  Asia/Shanghai  ,  + 08:00  ', CST, Asia/Shanghai, + 08:00",
+})
+void testParseStringThenGenerateZoneInfo(String line,
+                                         String expectedAbbreviation,
+                                         String expectedZoneName,
+                                         String expectedGmtOffset) {
+    ZoneInfo zoneInfo = ZoneInfoParser.parse(line);
+    assertEquals(expectedZoneName, zoneInfo.getZoneName());
+    assertEquals(expectedGmtOffset, zoneInfo.getGmtOffset());
+    assertEquals(1, zoneInfo.getAbbreviations().size());
+    assertEquals(expectedAbbreviation, zoneInfo.getAbbreviations().get(0));
+}
+```
+
+用例中考虑了字符串中空格被意外引入的情况，代码实现:
+
+```java
+import java.util.ArrayList;
+import java.util.List;
+
+public class ZoneInfoParser {
+    public static ZoneInfo parse(String line) {
+        String[] splits = line.split("\\s*,\\s*");
+        List<String> abbreviations = new ArrayList<>();
+        ZoneInfo zoneInfo = new ZoneInfo();
+        abbreviations.add(splits[0]);
+        zoneInfo.setAbbreviations(abbreviations);
+        zoneInfo.setZoneName(splits[1]);
+        zoneInfo.setGmtOffset(splits[2]);
+        return zoneInfo;
+    }
+}
+```
+
+但上面的测试用例只针对了正常输入，对于异常输入也需要处理，不满足条件的输入都会返回`null`，见测试用例：
+
+```java
+@ParameterizedTest
+@NullAndEmptySource
+@ValueSource(strings = {
+        // The elements number(separate by ,) in a line is not equal to 3
+        "A",
+        "A, B",
+        "A, B, C, D",
+  
+  			// A line with comment #
+        "# CST, Asia/Shanghai, + 08:00",
+        "   # CST, Asia/Shanghai, + 08:00",
+})
+void testParseWithUnexpectedInputWillReturnNull(String line) {
+    assertNull(ZoneInfoParser.parse(line));
+}
+```
+
+T1-2的最终实现代码：
+
+```java
+public class ZoneInfoParser {
+
+    public static final String REG_VALUE_SEPARATOR = "\\s*,\\s*";
+    public static final String COMMENT_LINE_PREFIX = "#";
+
+    public static ZoneInfo parse(String line) {
+        if (Objects.isNull(line) || line.trim().startsWith(COMMENT_LINE_PREFIX)) {
+            return null;
+        }
+
+        String[] splits = line.split(REG_VALUE_SEPARATOR);
+        if (3 == splits.length) {
+            List<String> abbreviations = new ArrayList<>();
+            ZoneInfo zoneInfo = new ZoneInfo();
+            abbreviations.add(splits[0].trim());
+            zoneInfo.setAbbreviations(abbreviations);
+            zoneInfo.setZoneName(splits[1].trim());
+            zoneInfo.setGmtOffset(splits[2].trim());
+            return zoneInfo;
+        }
+        return null;
+    }
+}
+```
+
+##### 任务 T1-1
+
+文件的读取需要考虑异常场景，也需要考虑Java的两种对文件处理的方式：
+
+- 一种是根据文件的绝对路径来读取文件
+- 一种是根据文件的classpath路径来读取文件
+
+先编写针对绝对路径读取文件的代码：
+
+```java
+@Nested
+class ParseFileTest {
+
+  @TempDir
+  Path sharedTempDir;
+
+  String fileAbsolutePath;
+
+  @BeforeEach
+  static void setUp() throws FileNotFoundException {
+      Path file = sharedTempDir.resolve("test.txt");
+      try (PrintWriter pw = new PrintWriter(file.toFile())){
+          fileAbsolutePath = file.toAbsolutePath().toString();
+          pw.println("# Abbreviation, Zone Name, GMT Offset");
+          pw.println("SHANGHAI, Asia/Shanghai, + 08:00");
+          pw.println("ACST, Australia/Darwin, + 09:30");
+      }
+  }
+
+  @Test
+  void testReadFileWithAbsolutePathAndReturnStringList() throws IOException {
+      List<String> lines = ZoneInfoParser.readLines(fileAbsolutePath);
+      assertEquals(3, lines.size());
+  }
+}
+```
+
+> 这里在测试类`ZoneInfoParserTest`中使用了内部测试类`ParseFileTest`和注解`@Nested`，这样，在`ParseFileTest`中的文件初始化就不会影响不需要文件操作的其他测试方法。
+
+实现代码很简单：
+
+```java
+public static List<String> readLines(String filePath) throws IOException {
+	return Files.readAllLines(Paths.get(filePath));
+}
+```
+
+但是对于classpath的文件的读取，先在test/resources目录创建`test_zone_info.txt`，然后编写验收测试用例：
+
+```java
+@Test
+void testReadFileWithClassPathAndReturnStringList() throws IOException {
+  List<String> lines = ZoneInfoParser.readLines("test_zone_info.txt");
+  assertEquals(3, lines.size());
+}
+
+@Test
+void testReadFileWithNotExistFileWillThrowIOException() {
+  final String absolutePath = "/ANY_PATH/NOT_EXISTED_FILE.txt";
+  assertThrows(IOException.class, () -> ZoneInfoParser.readLines(absolutePath));
+  assertThrows(IOException.class, () -> ZoneInfoParser.readLines("NOT_EXISTED_FILE.txt"));
+}
+```
+
+获取到`List<String>`后，需要将其转化为`List<ZoneInfo>`对象，验收测试：
+
+```java
+void testParseFileAndReturnZoneInfoList() throws IOException {
+  List<ZoneInfo> zoneInfoList = ZoneInfoParser.parseFile("test_zone_info.txt");
+  assertEquals(3, zoneInfoList.size());
+}
+```
+
+> 每一个有效的输入行都会生成一个`ZoneInfo`对象
+
+T1-1最终实现代码为：
+
+```java
+public static List<String> readLines(String filePath) throws IOException {
+    Path path = Paths.get(filePath);
+    if (path.isAbsolute()) {
+        return Files.readAllLines(path);
+    }
+    ClassLoader classLoader = ZoneInfoParser.class.getClassLoader();
+    try (InputStream inputStream = classLoader.getResourceAsStream(filePath)) {
+        if (Objects.isNull(inputStream)) {
+            throw new IOException();
+        }
+        return new BufferedReader(new InputStreamReader(inputStream))
+                .lines()
+                .collect(Collectors.toList());
+    }
+}
+
+public static List<ZoneInfo> parseFile(String filePath) throws IOException {
+    List<String> lines = readLines(filePath);
+    List<ZoneInfo> filteredList = lines.stream()
+            .map(ZoneInfoParser::parse)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
+    return filteredList;
+}
+```
+
+##### 任务 T1-3
+
+T1-3需要集成T1-1和T1-2，集成的主要目的是将`Zone Name`相同的`ZoneInfo`对象合并成一个`ZoneInfo`对象。先给出两个验收测试用例，测试用例放在`ZoneInfoUtilsTest`中：
+
+```java
+@Test
+void testAggregateWillCombineZoneInfoWithSameZoneName() {
+    List<ZoneInfo> zoneInfoList = Arrays.asList(
+            zoneInfoMap.get("darwin"),
+            zoneInfoMap.get("darwin2")
+    );
+
+    List<ZoneInfo> aggregatedList = ZoneInfoUtils.aggregate(zoneInfoList);
+    assertEquals(1, aggregatedList.size());
+    ZoneInfo zoneInfo = aggregatedList.get(0);
+    assertEquals("Australia/Darwin", zoneInfo.getZoneName());
+    assertIterableEquals(Arrays.asList("ACST", "DARWIN"), zoneInfo.getAbbreviations());
+}
+
+@Test
+void testAggregateWillNotCombineZoneInfoWithDifferentZoneName() {
+    List<ZoneInfo> zoneInfoList = Arrays.asList(
+            zoneInfoMap.get("shanghai"),
+            zoneInfoMap.get("darwin")
+    );
+    List<ZoneInfo> aggregatedList = ZoneInfoUtils.aggregate(zoneInfoList);
+    System.out.println(aggregatedList);
+    assertEquals(2, aggregatedList.size());
+}
+```
+
+> 在写测试用例的过程中我们对测试代码做了一些细微的重构，这里不做详述。
+
+实现代码略有些复杂:
+
+```java
+static ZoneInfo combine(ZoneInfo master, ZoneInfo slave) {
+    ZoneInfo zoneInfo = new ZoneInfo();
+    zoneInfo.setZoneName(master.getZoneName());
+    zoneInfo.setGmtOffset(master.getGmtOffset());
+    List<String> abbreviations = Stream.concat(
+            master.getAbbreviations().stream(),
+            slave.getAbbreviations().stream()
+    ).collect(Collectors.toList());
+    zoneInfo.setAbbreviations(abbreviations);
+    return zoneInfo;
+}
+
+public static List<ZoneInfo> aggregate(List<ZoneInfo> zoneInfoList) {
+    return zoneInfoList.stream()
+            .collect(
+                    Collectors.groupingBy(
+                            ZoneInfo::getZoneName,
+                            Collectors.reducing(ZoneInfoParser::combine)
+                    )
+            )
+            .values()
+            .stream()
+            .map(Optional::get)
+            .collect(Collectors.toList());
+}
+```
+
+> 实现代码使用了`Stream`里比较高级的`collect`和`groupBy`的用法。代码的语义理解并不难！
+
+笔者经过一番思想斗争，决定对`ZoneInfoParser`的`parseFile`略做修改，对此方法的返回值做`aggregate`处理。
+
+```java
+public static List<ZoneInfo> parseFile(String filePath) throws IOException {
+    List<String> lines = readLines(filePath);
+    List<ZoneInfo> filteredList = lines.stream()
+            .map(ZoneInfoParser::parse)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
+    return ZoneInfoUtils.aggregate(filteredList);
+}
+```
+
+在确定T3任务完成前，笔者需要保证所有测试用例是通过的。
+
+![avatar](images/tdd-exec-test3.png)
+
+在Intellij IDEA树形结构的的相应测试目录上使用快捷键`CTRL+OPTION+R`执行包下的所有测试。
+
+#### 任务 T4
+
+T1, T2, T3的任务我们均已完成，T4来做最后的集成，这个集成的具体需求其实并不明确，笔者这里计划提供一个单例的`service`和一个`App`的`main`方法以供测试。
+
+关于`service`，`service`类的三个基本功能：
+
+- 在构造时会解析和初始化文件
+- 提供可公共访问的接口来根据输入获取输出
+- 输入参数处理
+
+```java
+public class ZoneServiceImplTest {
+
+    private ZoneService zoneService;
+
+    @BeforeEach
+    void setUp() throws IOException {
+        zoneService = new ZoneServiceImpl("zone_info.txt");
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "CST, +08:00[Asia/Shanghai]",
+            "' CST ', +08:00[Asia/Shanghai]",
+            "cst, +08:00[Asia/Shanghai]",
+    })
+    void testGetZoneNameWithGmtOffsetByAbbreviation(String zoneAbbreviation, String expected) {
+        String zoneNameWithGmtOffice = zoneService.zoneNameWithGmtOffice(zoneAbbreviation);
+        assertEquals(expected, zoneNameWithGmtOffice);
+    }
+}
+```
+
+> 测试用例中考虑了输入参数前后有空格，输入参数为小写的情况
+
+实现代码：
+
+```java
+public class ZoneServiceImpl implements ZoneService {
+
+    private final List<ZoneInfo> zoneInfoList;
+
+    public ZoneServiceImpl(String filePath) throws IOException {
+        super();
+        zoneInfoList = ZoneInfoParser.parseFile(filePath);
+    }
+
+    @Override
+    public String zoneNameWithGmtOffice(String zoneAbbreviation) {
+        if (Objects.isNull(zoneAbbreviation)) {
+            return "";
+        }
+        String processedAbbreviation = zoneAbbreviation.trim().toUpperCase();
+        return ZoneInfoUtils.zoneNameWithGmtOffset(zoneInfoList, processedAbbreviation);
+    }
+}
+```
+
+最后就是`App`类`main`方法的临时实现了：
+
+```java
+public class App {
+
+    private ZoneService zoneService;
+
+    public App(String filePath) throws IOException  {
+        zoneService = new ZoneServiceImpl(filePath);
+    }
+
+    public static void main(String[] args) {
+        String filePath = "zone_info.txt";
+        if (args.length > 0) {
+            filePath = args[0];
+        }
+
+        App app =null;
+        try {
+            app = new App(filePath);
+        } catch (IOException e) {
+            System.out.println("Can't find the file " + filePath);
+            System.exit(1);
+        }
+
+        while (true) {
+            Scanner scanner = new Scanner(System.in);
+            String prompt = "Please input a zone abbreviation, type exit to quit the program!";
+            System.out.println(prompt);
+            while(scanner.hasNext()) {
+                String zoneAbbreviation = scanner.next();
+                if ("exit".equalsIgnoreCase(zoneAbbreviation.trim())) {
+                    System.exit(0);
+                }
+                
+                String response = app.zoneService.zoneNameWithGmtOffice(zoneAbbreviation);
+                if (Objects.isNull(response) || "".equals(response)) {
+                    System.out.println("NOT FOUND");
+                } else {
+                    System.out.println(response);
+                }
+            }
+        }
+    }
+}
+
+```
+
+在`App`的`main`方法上使用快捷键`CTRL+OPTION+R`执行`main`函数：
+
+```java
+> Task :App.main()
+Please input a zone abbreviation, type exit to quit the program!
+CST
++08:00[Asia/Shanghai]
+shanghai
++08:00[Asia/Shanghai]
+
+AEDT
++11:00[Australia/Sydney]
+ABCDE
+NOT FOUND
+exit
+```
+
+笔者对这个功能的测试驱动开发过程到这就结束了，在这里留下一个扩展问题？
+
+输入文件中的时区缩略词如果考虑大小写的情况，基于上面已经开发完成的代码，你会从哪里开始你的修改呢？
+
+> 笔者当然希望你是从增加验收测试用例开始：增加测试用例 -> 运行测试让增加的验收测试运行失败 -> 修改实现代码让验收测试运行通过 -> 运行所有测试确保没有测试运行失败。
+
+#### 小结
+
+本节尝试让读者比较全面的体验一次测试驱动开发的过程，总结一些知识点/经验如下：
+
+- 将需求逐步拆解为粒度小的任务，这些任务的功能小到一个对象方法就能完成。
+
+- 先有验收测试，再有实现代码，实现代码最直接的目的是为了让验收测试用例测试通过。
+
+- 对于测试驱动开发的初学者，建议参考T2任务完成过程的小步走模式，测试用例和实现代码一小步一小步的变得完善 。
+
+- 对于已经熟练于测试驱动开发的程序员，希望你能将测试驱动开发的好用之处宣传给你的同事朋友程序员。
+
+- 测试代码的重构与实现代码的重构同等重要，整洁可用的代码即是实现代码的目标，也是测试代码的目标。
+
+- 微妙的是，测试代码与实现代码的目的是有所不同的，测试代码希望直观的表达验收测试：一个测试方法一类验收测试用例；尽量直观的期望结果。关于写好单元测试的一些技巧，下一节会做详细描述。
+
+- 使用一个好的IDE去帮助开发，尽可能多的使用快捷键，让键盘的节奏跟上你的思维。第三章会比较详细介绍对`Intellij IDEA`的使用经验。
+
+  
 

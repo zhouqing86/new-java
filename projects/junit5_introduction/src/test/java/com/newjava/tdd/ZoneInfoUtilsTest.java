@@ -1,34 +1,25 @@
 package com.newjava.tdd;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 class ZoneInfoUtilsTest {
 
     private Map<String, ZoneInfo> zoneInfoMap;
 
-    private ZoneInfo buildZoneInfo(String zoneName, String gmtOffset, String... abbreviations) {
-        ZoneInfo zoneInfo = new ZoneInfo();
-        zoneInfo.setZoneName(zoneName);
-        zoneInfo.setGmtOffset(gmtOffset);
-        zoneInfo.setAbbreviations(Arrays.asList(abbreviations));
-        return zoneInfo;
-    }
-
     @BeforeEach
     void setUp() {
-        zoneInfoMap = new HashMap<>();
-        zoneInfoMap.put("shanghai", buildZoneInfo("Asia/Shanghai", "+ 08:00", "CST", "SHANGHAI"));
-        zoneInfoMap.put("darwin", buildZoneInfo("Australia/Darwin", "+ 09:30", "ACST"));
-        zoneInfoMap.put("sydney", buildZoneInfo("Australia/Sydney", "+ 11:00", "AEDT"));
-        zoneInfoMap.put("empty",  new ZoneInfo());
+        zoneInfoMap = ZoneInfoTestHelper.buildZoneInfoMap();
     }
 
     @ParameterizedTest
@@ -96,5 +87,30 @@ class ZoneInfoUtilsTest {
         );
 
         assertEquals(0, ZoneInfoUtils.availableZoneInfoList(zoneInfoList).size());
+    }
+
+    @Test
+    void testAggregateWillCombineZoneInfoWithSameZoneName() {
+        List<ZoneInfo> zoneInfoList = Arrays.asList(
+                zoneInfoMap.get("darwin"),
+                zoneInfoMap.get("darwin2")
+        );
+
+        List<ZoneInfo> aggregatedList = ZoneInfoUtils.aggregate(zoneInfoList);
+        assertEquals(1, aggregatedList.size());
+        ZoneInfo zoneInfo = aggregatedList.get(0);
+        assertEquals("Australia/Darwin", zoneInfo.getZoneName());
+        assertIterableEquals(Arrays.asList("ACST", "DARWIN"), zoneInfo.getAbbreviations());
+    }
+
+    @Test
+    void testAggregateWillNotCombineZoneInfoWithDifferentZoneName() {
+        List<ZoneInfo> zoneInfoList = Arrays.asList(
+                zoneInfoMap.get("shanghai"),
+                zoneInfoMap.get("darwin")
+        );
+        List<ZoneInfo> aggregatedList = ZoneInfoUtils.aggregate(zoneInfoList);
+        System.out.println(aggregatedList);
+        assertEquals(2, aggregatedList.size());
     }
 }

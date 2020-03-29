@@ -33,4 +33,13 @@ public class ZoneInfo {
     public void setGmtOffset(String gmtOffset) {
         this.gmtOffset = gmtOffset;
     }
+
+    @Override
+    public String toString() {
+        return "ZoneInfo{" +
+                "zoneName='" + zoneName + '\'' +
+                ", abbreviations=" + abbreviations +
+                ", gmtOffset='" + gmtOffset + '\'' +
+                '}';
+    }
 }

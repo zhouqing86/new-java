@@ -3,7 +3,9 @@ package com.newjava.tdd;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ZoneInfoUtils {
 
@@ -45,5 +47,31 @@ public class ZoneInfoUtils {
         List<ZoneInfo> availableZoneInfoList = availableZoneInfoList(zoneInfoList);
         ZoneInfo zoneInfo = zoneInfo(availableZoneInfoList, abbreviation);
         return zoneNameWithGmtOffset(zoneInfo);
+    }
+
+    static ZoneInfo combine(ZoneInfo master, ZoneInfo slave) {
+        ZoneInfo zoneInfo = new ZoneInfo();
+        zoneInfo.setZoneName(master.getZoneName());
+        zoneInfo.setGmtOffset(master.getGmtOffset());
+        List<String> abbreviations = Stream.concat(
+                master.getAbbreviations().stream(),
+                slave.getAbbreviations().stream()
+        ).collect(Collectors.toList());
+        zoneInfo.setAbbreviations(abbreviations);
+        return zoneInfo;
+    }
+
+    public static List<ZoneInfo> aggregate(List<ZoneInfo> zoneInfoList) {
+        return zoneInfoList.stream()
+                .collect(
+                        Collectors.groupingBy(
+                                ZoneInfo::getZoneName,
+                                Collectors.reducing(ZoneInfoUtils::combine)
+                        )
+                )
+                .values()
+                .stream()
+                .map(Optional::get)
+                .collect(Collectors.toList());
     }
 }
