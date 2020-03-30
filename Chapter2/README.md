@@ -14,9 +14,9 @@
 
 基于`大部分人对TDD不了解，甚至排斥TDD`这个假设，本章在后续其他各个小节里不会强调TDD，会聚焦在对Junit5的介绍，让Junit5成为帮助我们开发Java代码的利器。
 
-> 至于为什么不介绍Junit4，是因为Junit5更强大，但如果了解Junit4的程序员学习Junit5易如反掌，如果没有用过Junit的人学习Junit4其实没有太大必要，不过如果项目用的就是Junit4，也不用担心，因为如果掌握了Junit5，使用Junit4也易于反掌。
+> Junit5比Junit4强大很多，但如果了解Junit4的程序员学习Junit5易如反掌，而如果掌握了Junit5，使用Junit4也`So Easy`。
 
-另外需要在这里提到的是，笔者在多个Java、Go、NodeJS、Ruby、Scala语言项目中践行过TDD，在Java中进行TDD是体验最好的，其中最主要的原因不仅仅是因为Junit使用上的简洁方便，也有JAVA IDE(如IntelliJ IDEA)对TDD过程的好的细节支持，以及IDE在对代码重构过程的精准支持。
+另外需要在这里提到的是，笔者在多个Java、Go、NodeJS、Ruby、Scala语言项目中践行过TDD，在Java中进行TDD是体验最好的，其中最主要的原因不仅仅是因为Junit使用上的简洁方便，也有IDE(如IntelliJ IDEA)对TDD过程好的细节支持，同时在对代码重构时IDE也能精准支持。
 
-> 如果有人要从零开始学习测试驱动开发，我推荐使用Java语言，使用Junit5来编写单元测试，使用IntelliJ IDEA（Community版本）做为IDEA。下一章将用一整章来介绍IntelliJ IDEA，如果你想先了解IntelliJ IDEA的使用，可以先阅读下一章。
+> 如果有人要从零开始学习测试驱动开发，我推荐使用Java语言，使用Junit5来编写测试用例，使用IntelliJ IDEA（Community版本）做为IDEA。下一章将用一整章来介绍IntelliJ IDEA，如果你想先了解IntelliJ IDEA的使用，可以先阅读下一章。
 
