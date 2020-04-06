@@ -77,7 +77,7 @@ Commercial列即表示旗舰版支持的功能，Open-source列即表示社区�
 
 #### 手动创建项目
 
-打开安装的Intellij IDEA:
+打开安装的IntelliJ IDEA:
 
 ![avatar](images/idea-1.png)
 

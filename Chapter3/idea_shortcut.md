@@ -1,6 +1,6 @@
 # 第2节：苦练快捷键
 
-这一节主要学习如何使用Intellij IDEA（简称IDEA）的快捷键，建议读者跟随每一个步骤进行操练：
+这一节主要学习如何使用IntelliJ IDEA（简称IDEA）的快捷键，建议读者跟随每一个步骤进行操练：
 
 - 实现`IntegerUtils`类的`isPalindrome`方法来判断某个整数是否为素数，通过此示例入门IDEA快捷键使用。
 - 重构`main`方法已实现的代码，此代码从参数中解析出端口和IP地址，通过此示例入门IDEA中使用快捷键重构代码。
@@ -26,7 +26,10 @@
 
 #### 实现isPrime方法
 
-首先要介绍的快捷键大家都很熟悉，`⌘S|Ctrl+S`保存修改到文件，虽然IDEA有自动保存的功能，笔者还是建议常常使用`⌘S|Ctrl+S`。下面的快捷键不会提到`⌘S|Ctrl+S`，但读者在练习时要记得经常保存自己的修改。
+首先要介绍的快捷键很大家都应很熟悉的快捷键：
+
+- `⌘S|Ctrl+S`保存修改到文件，虽然IDEA有自动保存的功能，笔者还是建议常常使用`⌘S|Ctrl+S`。下面的快捷键不会提到`⌘S|Ctrl+S`，但读者在练习时要记得经常保存自己的修改。
+- `⌘Z|Ctrl+Z`撤销上一次的修改，在重构过程中如果需求撤销上一步的重构，使用此快捷键即可，重构中的代码修改，文件创建或改名都会被撤销。
 
 ##### 创建新文件IntegerUtils
 
@@ -80,9 +83,9 @@
 
 ![avatar](images/idea-shortcut-7.png)
 
-可以看到`IntegerUtils`中有错误提示，按`ESC`将光标移动到`IntegerUtils`类中，按`F2`光标将移动错误提示处。`⌥空格键`|`Alt+Enter`后选择提示菜单中的`Set package name to 'com.learn.idea.utils'`，而后`↩`|`Enter`节解决了此错误。
+可以看到`IntegerUtils`中有错误提示，按`ESC`将光标移动到`IntegerUtils`类中，按`F2`光标将移动错误提示处。`⌥↩`|`Alt+Enter`后选择提示菜单中的`Set package name to 'com.learn.idea.utils'`，而后`↩`|`Enter`节解决了此错误。
 
-`⌘E`|`Ctrl+E`显示最近打开的文件记录列表，选择`Main`，如同解决`IntegerUtils`中的错误提示一样，`F2` -> `⌥空格键`|`Alt+Enter` -> `↓`|`Down` -> `↩`|`Enter`，四个快捷键操作解决`Main`类中的错误。而后`⌃⌥R`|`Alt+Shift+F10`选择运行`main`方法。
+`⌘E`|`Ctrl+E`显示最近打开的文件记录列表，选择`Main`，如同解决`IntegerUtils`中的错误提示一样，`F2` -> `⌥↩`|`Alt+Enter` -> `↓`|`Down` -> |`Enter`，四个快捷键操作解决`Main`类中的错误。而后`⌃⌥R`|`Alt+Shift+F10`选择运行`main`方法。
 
 ##### 创建单元测试类
 
@@ -92,7 +95,7 @@
 
 ![avatar](images/idea-shortcut-8.png)
 
-所有的选项都使用IDEA默认填充的值，`↩`|`Enter`。`IntegerUtilsTest`类将被创建，`F2` -> `⌥空格键`|`Alt+Enter` ->  `↓`|`Down` 选择`Add 'Junit5.4' to classpath` -> `↩`|`Enter`。`Junit5.4`将被自动下载并放入项目的`classpath`中。
+所有的选项都使用IDEA默认填充的值，`↩`|`Enter`。`IntegerUtilsTest`类将被创建，`F2` -> `⌥↩`|`Alt+Enter` ->  `↓`|`Down` 选择`Add 'Junit5.4' to classpath` -> `↩`|`Enter`。`Junit5.4`将被自动下载并放入项目的`classpath`中。
 
 ![avatar](images/idea-shortcut-9.png)
 
@@ -190,7 +193,7 @@ public class IntegerUtils {
 - `⇧F6`|`Shift+F6`，可以用来重命名包，类，接口，方法，变量
 - `⌘;`|`Ctrl+Alt+Shift+S`打开当前项目配置
 - `F2`在当前代码的错误之间跳转
-- `⌥空格键`|`Alt+Enter`，智能提示错误的修复建议
+- `⌥↩`|`Alt+Enter`，智能提示错误的修复建议
 - `⌃空格`|`Ctrl+Alt+空格`，IDEA提示以助于完成代码，如注解参数提示，·函数参数提示等
 - `⌘E`|`Ctrl+E`显示最近打开的文件记录列表
 - `⌃⌥R`|`Alt+Shift+F10`运行`main`方法，测试方法，测试类，测试包
@@ -311,7 +314,7 @@ private String connectMessage() {
 }
 ```
 
-将光标移动到`connectMessage`那一行，`⌥空格键`|`Alt+Enter`选择`Change access modifier`，`↩`|`Enter`后选择`package-private`，`private`将被移除，`connectMessage`将包内可见，目的是为了让测试类有权限直接调用这个方法。
+将光标移动到`connectMessage`那一行，`⌥↩`|`Alt+Enter`选择`Change access modifier`，`↩`|`Enter`后选择`package-private`，`private`将被移除，`connectMessage`将包内可见，目的是为了让测试类有权限直接调用这个方法。
 
 `⌘⇧T`|`Ctrl+Shift+T`为`connectMessge`编写验收测试用例（快捷键使用过程这里不再赘述，详细关于单元测试的描述请查看第二章内容):
 
@@ -457,6 +460,8 @@ public class Main {
     }
 }
 ```
+
+> 重构已有之前应先补充好足够的单元测试！但此实例的主要目的是重构快捷键入门，因此没有严格按照这个原则来执行。
 
 第一步，将`port`的处理与`ipAddress`的处理分开:
 

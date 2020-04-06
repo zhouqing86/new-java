@@ -2,10 +2,6 @@
 
 
 
-#### IDEA自带的快捷键学习教程
-
-
-
 #### Maven/Gradle创建IDEA工程文件
 
 
