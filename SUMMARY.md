@@ -6,6 +6,7 @@
     * [第2节：Java9新功能概要](Chapter1/java9.md)
     * [第3节：Java10新功能概要](Chapter1/java10.md)
     * [第4节：Java11新功能概要](Chapter1/java11.md)
+    * [第5节：Java11之后的新功能](Chapter1/after_java11.md)
 * [第二章 单元测试Junit5](Chapter2/README.md)
     * [第1节：单元测试的入门](Chapter2/junit5_1.md)
     * [第2节：常用断言](Chapter2/junit5_assertion.md)

@@ -277,6 +277,8 @@ jshell> HelloWorld.main(new String[]{})
 
 面向对象编程聚焦的是什么是对象以及如何使用对象，函数式编程聚焦在什么是函数以及如何使用函数，而响应式编程聚焦在数据是如何流动的，以及对数据的修改如何能够被传递和响应。
 
+##### 响应式编程的简单例子
+
 Java9是第一个引入响应式编程的一些特性（响应式流）的标准JDK。先看一个例子：
 
 ````java
@@ -307,7 +309,212 @@ jshell> /open reactive_java_1.txt //结果之间的打印会等待一秒钟
 
 对Java观察者模式有所了解的读者应很了解例子中的模式，对于不了解观察者模式的读者，可以想象为一个设计好的电路中，`System.out::println`就是一个电压表，当电压变化时，电压表能够随时反应出实际电压。
 
-这个`设计好的电路`，就是响应式编程中聚焦的数据流动流程。
+这个`设计好的电路`，就是响应式编程中聚焦的数据流动流程，而`submit`提交的是数据的变化。
+
+##### 什么是响应流
+
+响应流的定义见[http://www.reactive-streams.org/](http://www.reactive-streams.org/):
+
+```wiki
+Reactive Streams is an initiative to provide a standard for asynchronous stream processing with non-blocking back pressure.
+响应流是一个倡议：关于如何定义非阻塞背压下的异步流处理流程，我们来提供一个标准。
+
+The scope of Reactive Streams is to find a minimal set of interfaces, methods and protocols that will describe the necessary operations and entities to achieve the goal.
+响应流的范围包括寻找一组最小的接口、方法和协议来描述实现响应式流目标的必需操作和实体。
+```
+
+上述定义中核心的概念：
+
+- 异步流，举个电商场景异步流的例子：用户下单，店家根据订单打包发货，物流将货物送给用户。用户、店家和物流完成自己的事情后都不需要任何等待。
+- 背压，是向后的往回的压力，如果1000个用户每天下一单，但店家每天只能处理500单的打包发货，店家打包发货环节对用户下单环境就产生了背压，店家不雇佣更多人的情况下就只能限制每天的销售数量了。
+- 非阻塞，对于某个特定用户，如果必须完成当前下单（譬如等待店家客服确认）才能再下下一单，这就意味着用户下单过程是阻塞的；而如果用户下完一单并不需要等待订单的完成就可继续下下一单，这就意味着用户下单过程是非阻塞的。
+
+一个典型的Java9响应流：
+
+- 生产者/发布者（`Publisher`）负责生产数据，将数据推送给数据订阅者，数据订阅者可以是数据加工者或者数据消费者
+- 数据加工者（`Processor`）加工数据，对数据进行一些逻辑上计算改造
+- 最终数据消费者（`Subscriber`）消费数据，譬如打印出结果
+- 响应流中如何处理背压，如何避免当生产者生产的数据过多，数据消费者处理不过来的情况？原则是数据消费者必须 获取主动权，为了避免生产者和消费者循环依赖问题，数据订阅者不能直接调用生产者的方法去告知生产者，所以只能暴露按量资源获取或取消资源获取的`Subscription`接口给生产者，生产者实现接口定义的方法，消费者就通过调用接口定义的方法来通知获取资源的数量或取消对资源的获取。
+
+上面提到的`Publisher`、`Processor`、`Subscriber`和`Subscription`都是Java9定义的接口，都定义在`Flow`类中。如何把这些接口在代码上连接起来呢？
+
+- `Publisher`接口定义了`subscribe`方法，数据加工者或者消费者通过此方法的参数注入到`Publisher`中。
+- `Processor`接口同时继承了`Publisher`和`Subscriber`：做为`Subscriber`其能注入到`Publisher`中，从而`Publisher`能够把数据推送给它；做为`Publisher`其能在处理完数据后推送给其他的数据加工者或数据消费者。
+- `Subscriber`接口定义了四个方法供`Publisher`来调用，分别代表不同的场景：`
+  - 将`Subscriber`注入`Publisher`后，`Publisher`应调用`Subscriber`的`onSubscribe`方法
+  - `Publisher`将生产的数据推送时，调用`Subscriber`的`onNext`方法来处理元素
+  - `Publisher`遇到了异常情况，调用`Subscriber`的`onError`方法把异常传递给`Subscriber`
+  - `Publisher`整个数据生产结束后，调用`Subscriber`的`onComplete`方法来告知数据流结束
+- `Subscription`接口定义了两个方法供`Subscriber`来调用：
+  - `Subscriber`需要获取数据时，调用`Subscription`的`request`方法，`request`方法带有一个数量参数，从而使得`Subscriber`具有每次限量获取数据的能力
+  - `Subscriber`不再获取数据时，调用`Subscription`的`cancel`方法，通知`Publisher`其不再消费数据
+- `Subcriber`的`onSubscribe`方法的参数为`Subscription`，这是`Subscriber`从`Publisher`获取`Subscription`接口的实现对象的唯一机会。
+
+##### Java9响应流自定义实现
+
+先实现一个`SimpleSubscriber`:
+
+```java
+import java.util.concurrent.Flow.Subscriber;
+import java.util.concurrent.Flow.Subscription;
+
+public class SimpleSubscriber<T> implements Subscriber<T> {
+
+    private Subscription subscription;
+    private String name;
+
+    public SimpleSubscriber(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public void onSubscribe(Subscription subscription) {
+        this.subscription = subscription;
+      
+        //调用Subscription的request方法来通知Publisher其下一次可以处理的数据量
+        this.subscription.request(1);
+    }
+
+    @Override
+    public void onNext(T item) {
+        System.out.println(name + "接收到数据: " + item);
+      
+        //处理完当前数据后，继续通知Publisher其下一次可以处理的数据量
+        this.subscription.request(1);
+    }
+
+    @Override
+    public void onError(Throwable throwable) {
+        System.out.println(name + "被通知有错误发生");
+        throwable.printStackTrace();
+    }
+
+    @Override
+    public void onComplete() {
+        System.out.println(name + "被通知所有数据已经处理完成");
+    }
+  
+    // subscriber的自定义方法，通过此方法间接通知publiser将停止接收新数据
+    public void cancel() {
+        subscription.cancel();
+    }
+}
+```
+
+实现`SimpleSubscriber`和`SimpeSubscription`:
+
+```java
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Flow.Publisher;
+import java.util.concurrent.Flow.Subscriber;
+import java.util.concurrent.Flow.Subscription;
+
+public class SimplePublisher implements Publisher {
+
+    List<SimpleSubscription> subscriptionList = new ArrayList<>();
+    List<String> dataList = new ArrayList<>();
+
+    @Override
+    public synchronized void subscribe(Subscriber subscriber) {
+        //针对每个subscriber都创建一个新的subscription，并将subscriber注入到subscription中
+        SimpleSubscription subscription = new SimpleSubscription(subscriber);
+      
+        //调用subscriber的onSubscribe方法，将subscription交给subscriber，且将主动权交给subscriber
+        subscriber.onSubscribe(subscription);
+      
+        //使用一个List来存储所有的注入了subscriber的Subscription
+        subscriptionList.add(subscription);
+    }
+
+    //生产者自定义的生产数据的方法
+    public synchronized void submit(String data) {
+        dataList.add(data);
+      
+        //新数据添加进列表，则需要通知每一个可用的subscriber，这里通过subscription来间接通知
+        subscriptionList.forEach(subscription -> subscription.request(1));
+    }
+  
+    //生产者的自定义结束方法
+    public synchronized void complete() {
+        subscriptionList.forEach(subscription -> subscription.complete());
+    }
+
+    class SimpleSubscription implements Subscription {
+        private final Subscriber subscriber;
+      
+        //每个subscription都存储一个数据处理的索引
+        private int index;
+      
+        //每个subscription都设置一个是否完成的标志位
+        private boolean cancelled;
+
+        public SimpleSubscription(Subscriber subscriber) {
+            this.subscriber = subscriber;
+            index = 0;
+            cancelled = false;
+        }
+
+        @Override
+        public void request(long n) {
+            // 如果此subscription的完成标志位为true，则不再处理新来的数据
+            if (cancelled) {
+                return;
+            }
+          
+            // 不管请求的数量是多少，这里每次都只消费一个数据
+            if (n > 0 && index < dataList.size()) {
+                subscriber.onNext(dataList.get(index++));
+            }
+        }
+
+        @Override
+        public void cancel() {
+            // subscriber可以调用subscription的cancel方法，后续的数据更新不再发送给subscriber
+            cancelled = true;
+        }
+      
+        public void complete() {
+            subscriber.onComplete();
+        }
+    }
+}
+```
+
+而后，我们来测试`SimplePublisher`和`SimpleSubscriber`：
+
+```java
+SimplePublisher publisher = new SimplePublisher();
+SimpleSubscriber<String> subscriber = new SimpleSubscriber<>("Subscriber-1");
+SimpleSubscriber<String> subscriber2 = new SimpleSubscriber<>("Subscriber-2");
+
+publisher.subscribe(subscriber);
+publisher.subscribe(subscriber2);
+
+publisher.submit("hello");
+publisher.submit("java9");
+
+subscriber.cancel();
+publisher.submit("reactive");
+
+publisher.complete();
+```
+
+打印的结果应为：
+
+```java
+Subscriber-1接收到数据: hello
+Subscriber-2接收到数据: hello
+Subscriber-1接收到数据: java9
+Subscriber-2接收到数据: java9
+Subscriber-2接收到数据: reactive
+Subscriber-1被通知所有数据已经处理完成
+Subscriber-2被通知所有数据已经处理完成
+```
+
+> 基于对以上概念和例子的理解，读者是否基于上面的例子编写一个Processor的实现呢？
+
+想要了解更复杂更产品化的`Publisher`实现，可以查看Java9中的`SubmissionPublisher`的源代码，在`SubsmissionPublisher`中也自带`ConsumerSubscriber`。
 
 ## 集合静态工厂方法
 
@@ -345,13 +552,63 @@ jshell> sizeFunc.apply(List.of("abc"))
 $3 ==> 1
 ```
 
+## VarHandle
 
+Java9引入`VarHandle`对象，其非常强大， 类的成员变量都可以转变成`VarHandle`对象，进而通过`VarHandle`对象可以获取或设置成员变量的值。当然，Java9之前的反射对象`java.lang.reflect.Field`也可以对类成员变量进行获取和赋值，但是`VarHandle`比起强大的多：
 
-## 新HttpClient
+- 可以获取和设置对象成员变量
 
+- 可以获取和设置静态成员变量
+- 可以获取和设置`volatile`的成员变量，且获取和设置时都保持其`volatile`的内存可见性特性
+- 提供`CAS`操作的方法`compareAndSet`
+- 提供数值型域的原子操作方法如`getAndAdd`
 
+代码实例：
 
+```java
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 
+public class VarHandleTest {
+    int i = 1;
+    static String str = "hello";
+    volatile int v = 2;
+    private int p =1;
+
+    static final VarHandle I;
+    static final VarHandle STR;
+    static final VarHandle V;
+    static final VarHandle P;
+
+    static {
+        try {
+            MethodHandles.Lookup lookup = MethodHandles.lookup();
+            MethodHandles.Lookup privateLookup = MethodHandles.privateLookupIn(VarHandleTest.class, lookup);
+            I = lookup.findVarHandle(VarHandleTest.class, "i", int.class);
+            STR = lookup.findStaticVarHandle(VarHandleTest.class, "str", String.class);
+            V = lookup.findVarHandle(VarHandleTest.class, "v", int.class);
+            P = privateLookup.findVarHandle(VarHandleTest.class, "p", int.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
+        }
+    }
+
+    public static void main(String[] args) {
+        VarHandleTest testObj = new VarHandleTest();
+        I.set(testObj, 23); //将testObj的变量i设置为23
+        STR.set("world"); //将静态成员变量str设置为world
+        I.setVolatile(testObj, 24); //非volatile从成员变量设置后也可以被其他线程可见
+        P.set(testObj, 100); //设置对象私有变量的值
+
+        V.setVolatile(testObj, 3); //设置volatile变量值为3
+        V.set(testObj, 4); //volatile变量被设置后其也可能其他线程不可见
+        V.compareAndSet(testObj, 4, 6); //调用CAS
+        V.getAndAdd(testObj, 10); //调用原子增量操作
+    }
+}
+```
+
+> `java.util.concurrent`包中的许多类都使用了`VarHandle`来替换之前的`Unsafe`类。
 
 
 
