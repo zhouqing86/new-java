@@ -5,9 +5,9 @@
 - 模块化系统，譬如使用jlink就可以根据需要定制运行时环境
 - 响应式编程的支持
 - 可交互式的REPL工具jshell
-- 改进的HttpClient，支持HTTP 2
 - Optional的改进
 - 集合工厂方法
+- VarHandle
 
 > 本节的内容是让读者快速的了解和入门Java9的新特性。关于模块化以及响应式编程，更详细的介绍可查看第七章和第八章。
 
@@ -123,6 +123,29 @@ java.base@9.0.4
 - `module-info.java`中虽然没有声明对`java.base`的依赖，但是其是Java默认的隐式依赖
 - `module-info.java`中有模块的命名应具有唯一性，JVM运行前如果检测到两个命名相同的模块在同一个目录，会看做有冲突而报错退出；如果在不同目录，将使用第一个遇到的模块而忽略其他相同命名模块
 - `--module-path`不同于`--class-path`，`--module-path`中的内容优先于`--class-path`中的内容被加载
+
+##### 查看模块信息
+
+查看JDK中的模块的信息：
+
+```shell
+java --describe-module java.base
+java -d java.base
+```
+
+查看某个自定义模块的信息：
+
+```shell
+java --module-path mods --describe-module HelloWorldModule
+java -p mods -d HelloWorldModule
+```
+
+或者直接通过`jar`命令直接查看模块化`JAR`包的信息：
+
+```shell
+jar --describe-module -f mods/HelloWorldModule.jar
+jar -d -f mods/HelloWorldModule.jar
+```
 
 ##### 模块化系统的基本知识介绍
 
@@ -610,7 +633,17 @@ public class VarHandleTest {
 
 > `java.util.concurrent`包中的许多类都使用了`VarHandle`来替换之前的`Unsafe`类。
 
+## 其他
 
+Java9还有其他很多值得关注的特征：
+
+- 使用G1作为默认的垃圾收集器
+
+- 多版本兼容JAR包
+
+- 接口支持私有方法和私有静态方法
+
+  
 
 
 

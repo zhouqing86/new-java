@@ -30,7 +30,7 @@
     * [第5节：文件操作](Chapter5/files.md)
     * [第6节：无处不在的函数式](Chapter5/functional_everywhere.md)
 * [第六章 函数式Java衍生的模式](Chapter6/README.md)
-    * [第1节：高阶函数](Chapter6/high_order_function_md)
+    * [第1节：高阶函数](Chapter6/high_order_function.md)
     * [第2节：计算缓存](Chapter6/cache.md)
     * [第3节：懒加载](Chapter6/lazy_load.md)
     * [第4节：函数式依赖注入](Chapter6/functional_di.md)
