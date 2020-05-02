@@ -305,8 +305,6 @@ System.out.println(s); //将打印出"首都不存在"
 
 - `Optional`类还其他一些非常有用的方法，如`filter`、 `ifPresent`、 `isPresent`、 `orElseGet`、 `orElseThrow`，现在就有兴趣的读者可以直接开始对这些方法的尝试和学习。
 
-
-
 ## 时间处理
 
 Java8中重写了（借鉴了jodo-time）一套时间处理的类。比起以前的时间处理，好用了许多。时间处理是一个看似简单，实则很复杂的事情。复杂的时区、部分国家夏令时机制等。

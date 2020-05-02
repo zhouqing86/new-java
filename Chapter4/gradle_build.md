@@ -483,6 +483,32 @@ uploadArchives {
 
 > 注意：`uploadArchives`任务将在未来的`Gradle 7`中移除。
 
+#### 约定大于配置
+
+在`Gradle`中，很多任务和成员变量并需要显示的声明或在`build.gradle`中赋值，因为`Gradle`奉行约定大于配置（`Convention Over Configuration`）。因此`Gradle`中有大量的默认约定（`conventions`）。
+
+如在`base`插件中:
+
+- `archivesBaseName`默认就是取`${project.name}`:
+
+  ```groovy
+  task defaultZip(type: Zip) {
+    from 'src'
+  }
+  ```
+
+  `defaultZip`任务与上面定义的`simpleZip`不同之处在于其没有对`archiveName`进行复制，其将默认使用`${project.name}.zip`生成`ZIP`包。
+
+- `archiveVersion`默认取`${project.version}`，如在`build.gradle`中赋值`version = '1.0'`，则`defaultZip`生成的包如`learning-gradle-1.0.zip`
+
+- `buildDir`默认构建目录为`build`，不论是源码编译后的目标目录还是资源文件将要拷贝去的目录
+
+- `distsDirName`默认生成的非库类型的产品包（如`JAR`包，`WAR`包）的发布目录名为`distributions`
+
+- `libsDirName`默认生成的库类型的产品包（如`ZIP`包，`TAR`包）的发布目录名为`libs`
+
+- `destinationDirectory`默认为`$buildDir/$distsDirName`或`$buildDir/$libsDirName`
+
 #### Gradle Wrapper
 
 是否可以在没有安装`Gradle`的情况下运行`gradle`相关命令，`Gradle Wrapper`让这成为可能。在安装有`Gradle`的机器上，在`build.gradle`所在目录，执行：
