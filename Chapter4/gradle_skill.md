@@ -278,6 +278,14 @@ greeting {
 
 `buildSrc`中定义的插件只能给当前项目使用，如果需要将定义的插件给更多的项目使用。则需要创建独立的插件项目。
 
+从零开始创建`Gradle`的插件的命令：
+
+```shell
+gradle init --type java-gradle-plugin --dsl groovy --package custom.plugin --project-name custom-plugin
+```
+
+但是这里将复用`buildSrc`的代码：
+
 - 先创建一个`greeting-plugin`的项目，将上面`buildSrc`目录的文件都拷贝到此项目中
 
 - `build.gradle`中引入`java-gradle-plugin`插件，其将默认将`implementation gradleApi()`导入`dependencies`，且能够为`jar`任务生成插件的元文件
