@@ -1,2 +1,8 @@
 .DS_Store
 *.pdf
+
+
+**/*.iml
+
+**/*.ipr
+**/*.iws
