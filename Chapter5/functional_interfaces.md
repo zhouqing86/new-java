@@ -294,3 +294,26 @@ System.out.println(max); //返回5
 
 #### 自定义函数式接口
 
+当一个接口中只有一个抽象方法时，即便其没有被注解为`@FunctionalInterface`，其也可以被当做无差别函数式接口来使用：
+
+```java
+//接口定义
+public interface WithoutFunctionalInterface<T> {
+    T add(T a, T b);
+}
+
+//接口测试
+@Test
+void testAddMethod() {
+    WithoutFunctionalInterface<Integer> integerAdd = (a, b) -> a + b;
+    assertEquals(3, integerAdd.add(1, 2));
+
+    WithoutFunctionalInterface<String> stringAdd = (str1, str2) -> str1.concat(str2);
+    assertEquals("helloworld", stringAdd.add("hello", "world"));
+}
+```
+
+但是笔者建议在所有的意图作为函数式接口的自定义接口上添加注解`@FunctionalInterface`，不仅仅因为其声明式的作用，而且IDE会检查这个函数式接口定义的正确性，如果接口中定义了多个抽象方法，IDEA在接口上会有错误提示。
+
+
+
