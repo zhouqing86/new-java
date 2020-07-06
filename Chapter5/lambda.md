@@ -1,4 +1,4 @@
-# 第2节：Lambda
+# 第2节：Lambda表达式
 
 从Java8开始，`Lambda`表达式成为了Java语言的一等公民，前面的部分章节的已经使用了`Lambda`表达式，`Lambda`表达式让代码更加简洁易懂。
 

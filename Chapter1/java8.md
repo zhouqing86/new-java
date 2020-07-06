@@ -260,7 +260,7 @@ assertEquals(sum, parallelSum); //sum与parallelSum是相等的
 
 > 小提示：我们自己在创建一些需要支持链式调用的类或接口时，可以参考Stream接口的设计方式，区分中间方法和终止方法。
 
-## Optional接口
+## Optional类
 
 如果做一个调查，关于Java程序员遇到最多的异常，我猜测肯定是`NullPointerException`。
 
