@@ -10,7 +10,7 @@ JDK8是在2014年3月19日发布的，以目前时间2020年4月计算，已经�
 
 ## 函数式接口与Lambda表达式
 
-在介绍Java8的函数式接口和Lambda之前，这里想先展示一种Javascript中的函数定义的方式，不使用`function`关键字定义一个`add`函数：
+在介绍Java8的函数式接口和`Lambda`之前，这里想先展示一种Javascript中的函数定义的方式，不使用`function`关键字定义一个`add`函数：
 
 ```javascript
 var add = (a,b) => a + b;
@@ -37,7 +37,7 @@ BiFunction<Integer, Integer, Integer> add = (a, b) -> a + b;
 - `(a, b) -> a + b`就是Java的Lambda表达式，这里的Lambda表达式本身并没有携带任何类型相关信息。
 - `BiFunction`是函数式接口，意味着这这一条Java语句中，Lambda表达式的类型就是`BiFunction`这个函数式接口。
 
-当然这个Lambda表达式也可以赋值给`合适`的其他函数式接口，关于如何自定义一个合适的类似的接口，是我们稍后会讨论的内容，目前让我们聚焦在`BiFunction`的定义上，`BiFunction`是Java8提供的一个函数式接口，定义如下:
+当然这个`Lambda`表达式也可以赋值给`合适`的其他函数式接口，关于如何自定义一个合适的类似的接口，是我们稍后会讨论的内容，目前让我们聚焦在`BiFunction`的定义上，`BiFunction`是Java8提供的一个函数式接口，定义如下:
 
 ```java
 @FunctionalInterface
