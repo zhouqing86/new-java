@@ -6,6 +6,7 @@ import org.apache.logging.log4j.LogManager;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
@@ -13,7 +14,7 @@ import java.util.stream.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class TestStream {
+public class TestStreamTerminateOperation {
     @Test
     void testStreamBasicUsage() {
         Stream.of(1, 2, 3).parallel().reduce(0, Integer::sum);
@@ -109,6 +110,13 @@ public class TestStream {
     void testCreateStreamByStreamSupport() {
         Iterable<Integer> iterable = List.of(1, 2, 3);
         Stream<Integer> stream = StreamSupport.stream(iterable.spliterator(), false);
+    }
+
+    @Test
+    void testCreateStreamWithStringMethods() {
+        assertEquals(2, "Hello\nWorld".lines().count());
+        assertEquals(2, "\uD83D\uDE03".chars().count());
+        assertEquals(1, "\uD83D\uDE03".codePoints().count());
     }
 
     @Test
@@ -240,7 +248,87 @@ public class TestStream {
             System.out.println("a=" + a + ", b=" + b);
             return a + b;
         }));
+    }
 
+    @Test
+    void testStreamCollectWithSupplierAccumulatorCombiner() {
+        BiConsumer<List<Integer>, Integer> accumulator = (lst, e) -> lst.add(e);
+        BiConsumer<List<Integer>, List<Integer>> combiner = (lst1, lst2) -> lst1.addAll(lst2);
+        assertEquals(List.of(1, 2, 3), Stream.of(1, 2, 3).collect(ArrayList::new, accumulator, combiner));
+    }
 
+    @Test
+    void testStreamCollectWithCollector() {
+        assertEquals(List.of(1, 2, 3), Stream.of(1, 2, 3).collect(Collectors.toList()));
+        assertEquals(Set.of(1, 2, 3), Stream.of(1, 2, 3).collect(Collectors.toSet()));
+    }
+
+    @Test
+    void testStreamCollectWithCollectorsJoining() {
+        assertEquals("{A,B,C}", Stream.of("A", "B", "C").collect(Collectors.joining(",", "{", "}")));
+    }
+
+    @Test
+    void testStreamCollectGroupingByUserAge() {
+        User user1 = new User("A", 24);
+        User user2 = new User("B", 50);
+        User user3 = new User("C", 24);
+        List<User> users = List.of(user1, user2, user3);
+
+        Map<Integer, List<User>> groupedResult = users.stream().collect(Collectors.groupingBy(User::getAge));
+
+        assertEquals(List.of(user1, user3), groupedResult.get(24));
+        assertEquals(List.of(user2), groupedResult.get(50));
+        assertNull(groupedResult.get(100));
+
+        Function<User, String> classifier = user -> {
+            if (user.getAge() <= 44) {
+                return "Young";
+            } else if (user.getAge() > 44 && user.getAge() <= 55 ) {
+                return "Middle-aged";
+            }
+            return "Old";
+        };
+        Map<String, List<User>> groupedResult2 = users.stream().collect(Collectors.groupingBy(classifier));
+        assertEquals(List.of(user1, user3), groupedResult2.get("Young"));
+        assertEquals(List.of(user2), groupedResult2.get("Middle-aged"));
+        assertNull(groupedResult2.get("Old"));
+
+        User user4 = new User("D", 40);
+        users = List.of(user1, user2, user3, user4);
+        Map<String, Optional<User>> groupedResult3 = users.stream().collect(
+                Collectors.groupingBy(
+                        classifier,
+                        Collectors.reducing(
+                            BinaryOperator.maxBy(Comparator.comparing(User::getAge))
+                        )
+                )
+        );
+        assertEquals(Optional.of(user4), groupedResult3.get("Young"));
+
+        Map<String, Map<String, List<User>>> groupedResult4 = users.stream().collect(
+                Collectors.groupingBy(
+                        classifier,
+                        Collectors.groupingBy(User::getName)
+                )
+        );
+
+        Map<String, Integer> groupedResult5 = users.stream().collect(
+                Collectors.groupingBy(
+                        classifier,
+                        Collectors.reducing(0, User::getAge, Integer::sum)
+                )
+        );
+        assertEquals(88, groupedResult5.get("Young"));
+        assertEquals(50, groupedResult5.get("Middle-aged"));
+
+        Map<String, Integer> groupedResult6 = users.stream().collect(
+                Collectors.groupingBy(
+                        classifier,
+                        Collectors.reducing(0, user -> 1, (count, user)->count+1)
+                )
+        );
+        assertEquals(3, groupedResult6.get("Young"));
+        assertEquals(1, groupedResult6.get("Middle-aged"));
     }
 }

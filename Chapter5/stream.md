@@ -97,7 +97,7 @@ Stream<Integer> infiniteStream = Stream.iterate(1, num -> num + 2);
 public static<T> Stream<T> iterate(T seed, Predicate<? super T> hasNext, UnaryOperator<T> next){...}
 Stream<Integer> boundedStream = Stream.iterate(1, num -> num < 10, num -> num + 2);
 
-//创建无限流，每个元素的计算都是通过传入的`Supplier`函数式接口得到
+//创建无限流，每个元素的计算都是通过传入的Supplier函数式接口得到
 public static<T> Stream<T> generate(Supplier<? extends T> s);
 Stream<Double> infiniteRandomStream = Stream.generate(Math::random);
 ```
@@ -142,9 +142,22 @@ void testCreateIntStreamByRange() {
 }
 ```
 
+`String`类中也添加了一些创建`Stream`对象的方法，如`chars`、`codePoints`和`lines`：
+
+```java
+@Test
+void testCreateStreamWithStringMethods() {
+    assertEquals(2, "Hello\nWorld".lines().count()); //lines方法获取Stream<String>类型的Stream对象
+    assertEquals(2, "\uD83D\uDE03".chars().count()); //chars方法获取IntStream对象
+    assertEquals(1, "\uD83D\uDE03".codePoints().count()); //codePoints方法获取IntStream对象
+}
+```
+
+> Java语言中，char的范围只能是在\u0000到\uffff，char类型用UTF-16编码描述一个代码单元，而unicode的范围从000000 - 10FFFF，对于unicode大于0x10000的部分，如😀，在Java中占用两个char:\uD83D和\uDE03，大这两个char合起来只是一个codePoint。
+
 #### Stream终止操作
 
-先来熟悉下Java语言中常见的Stream终止操作。
+先来熟悉下Java语言中常见的`Stream`终止操作，通过终止操作方法可以来获取`Stream`对象的最终计算/操作。
 
 ##### forEach
 
@@ -304,6 +317,18 @@ void testStreamReduceWithAccumulator() {
 前面两个`reduce`的方法的参数中都使用的是`BinaryOperator`，意味着参与计算的所有中间资源都是同类型的。假设有一个`User`列表，我们需要计算所有的`User`的年龄(`age`)之和，前面两种`reduce`就无法达到目标：
 
 ```java
+class User {
+    private String name;
+    private int age;
+
+    public User(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    ... setter and getter
+}
+
 List<User> users = List.of(new User("A", 24), new User("B", 34));
 
 users.stream().reduce(0, (identity, user) -> identity + user.getAge()); //编译出错
@@ -333,15 +358,398 @@ users.stream().parallel().reduce(0, (identity, user) -> identity + user.getAge()
 
 > `parallel`方法的调用使得Stream的`reduce`操作并行处理。
 
-#### collect
+##### collect
 
+`reduce`方法可以做一些计算和聚合操作，但是其不能处理的其他情况，譬如将`Stream`对象的数据结果返回`List`或`Set`，这时`collect`方法就来了，`collect`方法应该是`Stream`接口中使用起来最多变/复杂的方法。
 
+`Stream`接口中定义了两个`collect`方法，第一个`collect`方法：
+
+```java
+<R> R collect(Supplier<R> supplier,
+        BiConsumer<R, ? super T> accumulator,
+        BiConsumer<R, R> combiner);
+```
+
+其与第三个`reduce`方法有点类似，只是`identity`变成了`supplier`:
+
+```java
+@Test
+void testStreamCollectWithSupplierAccumulatorCombiner() {
+    BiConsumer<List<Integer>, Integer> accumulator = (lst, e) -> lst.add(e);
+    BiConsumer<List<Integer>, List<Integer>> combiner = (lst1, lst2) -> lst1.addAll(lst2);
+    assertEquals(List.of(1, 2, 3), Stream.of(1, 2, 3).collect(ArrayList::new, accumulator, combiner));
+}
+```
+
+第一个`collect`方法写起来还是比较复杂的，需要使用者很清楚这三个参数，Java为了减轻使用者的负担，定义了`Collector`接口，将`supplier`、`accumulator`以及`combiner`都定义在这个接口里，并同时提供`Collectors`类提供大量生成`Collector`对象的静态方法，于是有了第二个`collect`方法:
+
+```java
+<R, A> R collect(Collector<? super T, A, R> collector);
+```
+
+有了这个方法，写起来会很简洁：
+
+```java
+@Test
+void testStreamCollectWithCollector() {
+    assertEquals(List.of(1, 2, 3), Stream.of(1, 2, 3).collect(Collectors.toList()));
+  	assertEquals(Set.of(1, 2, 3), Stream.of(1, 2, 3).collect(Collectors.toSet()));
+}
+```
+
+因为“脏活”都让`Collectors.toList()`和`Collectors.toSet()`帮忙做了。如果去查看`Collectors`的源代码，会发现其定义了大量的静态方法。有了这个强大的愿意干脏活的`Collectors`，`collect`方法也能放飞自我了。
+
+如使用`Collectors.joining`将元素拼接在一起：
+
+```java
+@Test
+void testStreamCollectWithCollectorsJoining() {
+    assertEquals("{A,B,C}", Stream.of("A", "B", "C").collect(Collectors.joining(",", "{", "}")));
+}
+```
+
+再如使用`Collectors.groupingBy`根据用户的年龄进行分组：
+
+```java
+@Test
+void testStreamCollectGroupingByUserAge() {
+    User user1 = new User("A", 24);
+    User user2 = new User("B", 50);
+    User user3 = new User("C", 24);
+    List<User> users = List.of(user1, user2, user3);
+		//根据年龄的数字分组
+    Map<Integer, List<User>> groupedResult = users.stream().collect(Collectors.groupingBy(User::getAge));
+
+    assertEquals(List.of(user1, user3), groupedResult.get(24));
+    assertEquals(List.of(user2), groupedResult.get(50));
+    assertNull(groupedResult.get(100));
+
+    Function<User, String> classifier = user -> {
+      	//世界卫生组织将44岁以下的人群称为青年人
+        if (user.getAge() <= 44) {
+            return "Young";
+        } else if (user.getAge() > 44 && user.getAge() <= 55 ) {
+            return "Middle-aged";
+        }
+        return "Old";
+    };
+  	//根据年龄段分组
+    Map<String, List<User>> groupedResult2 = users.stream().collect(Collectors.groupingBy(classifier));
+  
+    assertEquals(List.of(user1, user3), groupedResult2.get("Young"));
+    assertEquals(List.of(user2), groupedResult2.get("Middle-aged"));
+    assertNull(groupedResult2.get("Old"));
+}
+```
+
+如果我们希望分组的结果`Map`中年龄最大的，可以这么做：
+
+```java
+User user4 = new User("D", 40);
+users = List.of(user1, user2, user3, user4);
+Map<String, Optional<User>> groupedResult3 = users.stream().collect(
+        Collectors.groupingBy(
+                classifier,
+                Collectors.reducing(
+                    BinaryOperator.maxBy(Comparator.comparing(User::getAge))
+                )
+        )
+);
+```
+
+`groupingBy`方法也可以在第二个参数接收`Collector`对象。这就意味着，我们第二个参数也可以使用`Collectors.groupingBy`进行进一步根据姓名分组:
+
+```java
+Map<String, Map<String, List<User>>> groupedResult5 = users.stream().collect(
+        Collectors.groupingBy(
+                classifier,
+                Collectors.groupingBy(User::getName)
+        )
+);
+```
+
+如果我们需要计算每个年龄分组里的年龄和：
+
+```java
+Map<String, Integer> groupedResult5 = users.stream().collect(
+        Collectors.groupingBy(
+                classifier,
+                Collectors.reducing(0, User::getAge, Integer::sum)
+        )
+);
+assertEquals(88, groupedResult5.get("Young"));
+assertEquals(50, groupedResult5.get("Middle-aged"));
+```
+
+如果只想统计年龄段里的人个数：
+
+```java
+Map<String, Integer> groupedResult6 = users.stream().collect(
+        Collectors.groupingBy(
+                classifier,
+                Collectors.reducing(0, user -> 1, (count, user)->count+1)
+        )
+);
+assertEquals(3, groupedResult6.get("Young"));
+assertEquals(1, groupedResult6.get("Middle-aged"));
+```
 
 #### Stream中间操作
 
+`Stream`的中间操作（`Intermediate Operation`) 将一个`Stream`转换成另外一个`Stream`。因而中间操作之间可以进行链式调用。调用`Stream`的中间操作并不会触发结果计算，只有调用终止操作才会开始对结果的计算，因而可以说`Stream`的是惰性求值（`Lazy Evaluation`)的。
 
+##### map
 
+当我们需要对`Stream`中的每个元素进行转化，就可以使用`map`，如我们对每个元素进行计算，计算规则是是先进行平方而后再加上2：
 
+```java
+@Test
+void testMap() {
+    List<Integer> lst = Stream.of(1, 2, 3)
+            .map(num -> num * num)
+            .map(num -> num + 2)
+            .collect(Collectors.toList());
+    assertEquals(List.of(3, 6, 11), lst);
+}
+```
+
+`map`操作后，输入`Stream`和输出`Stream`中元素的个数是不变的。
+
+##### flatMap
+
+如果`Stream`中的每个元素都是一个数组，而我们想把这些数组里的元素都串接到一起，可以使用`flatMap`来做：
+
+```java
+@Test
+void testFlatMap() {
+    List<String> words = Stream.of("Hello world", "Hello my friend")
+            .map(str -> str.split(" "))
+            .flatMap(arr -> Arrays.stream(arr))
+            .collect(Collectors.toList());
+    assertEquals(5, words.size());
+}
+```
+
+本例中先通过`map`操作将Stream里的每个字符串转化成字符串数组，即将`Stream<String>`转换成了`Stream<String[]>`，而通过`flatMap`操作，将`Stream<String[]>`中的每个字符串数组提取出来串接到一起，变成了另一个`Stream<String>`。
+
+`flatMap`操作会使得输出`Stream`中元素的个数发生变化，相对输入`Stream`，常见的是输入出`Stream`中元素个数变多了。
+
+##### filter
+
+如果只期望过滤出`Stream`中满足某些条件的元素，可以使用`filter`:
+
+```java
+@Test
+void testFilter() {
+    List<Integer> lst = Stream.of(1, 2, 3)
+            .filter(num -> num % 2 == 0)
+            .collect(Collectors.toList());
+    assertEquals(List.of(2), lst);
+}
+```
+
+`filter`操作的输出`Stream`中的元素个数往往会变少。需要注意的是是这里的`filter`操作会过滤出满足条件的元素，而不是把满足条件的元素给过滤出去，这是开发人员在刚开始使用`filter`时需要注意的。
+
+##### distinct
+
+如果想去除`Stream`中重复的元素，可以使用`distinct`:
+
+```java
+@Test
+void testDistinct() {
+    List<Integer> lst = Stream.of(1, 2, 3, 1, 2, 3)
+            .distinct()
+            .collect(Collectors.toList());
+    assertEquals(List.of(1, 2, 3), lst);
+}
+```
+
+##### takeWhile/dropWhile
+
+`takeWhile`和`dropWhile`操作是Java9中引入的，其可以理解为对`while`循环的简化写法。这两个操作都接收函数式接口`Predicate`为其参数，这个`Predicate`给出的是退出`while`循环的条件。
+
+```java
+@Test
+void testTakeWhile() {
+    List<Integer> lst = Stream.of(1, 2, 3)
+            .takeWhile(num -> num % 2 != 0)
+            .collect(Collectors.toList());
+    assertEquals(List.of(1), lst);
+}
+```
+
+从`Stream`的第一个元素开始，如果满足`takeWhile`的条件，就添加到结果`Stream`中，直到遇到不满足条件的元素则退出`while`循环。
+
+```java
+@Test
+void testDropWhile() {
+    List<Integer> lst = Stream.of(1, 2, 3)
+            .dropWhile(num -> num % 2 != 0)
+            .collect(Collectors.toList());
+    assertEquals(List.of(2, 3), lst);
+}
+```
+
+从`Stream`的第一个元素开始，如果满足`dropWhile`的条件，则从结果`Stream`中删除，直到有不满足条件的元素出现退出`while`循环。
+
+##### limit
+
+获取`Stream`元素的前面几个，对于无限流或者排序好的流，`limit`非常管用：
+
+```java
+@Test
+void testLimit() {
+    List<Integer> lst = Stream.iterate(1, num -> num + 1)
+            .limit(3)
+            .collect(Collectors.toList());
+    assertEquals(List.of(1, 2, 3), lst);
+}
+```
+
+##### skip
+
+如果需要在对`Stream`元素访问时有分页的效果，可以使用`skip`和`limit`:
+
+```java
+@Test
+void testSkip() {
+    int page = 2;
+    int pageSize = 3;
+    List<Integer> lst = Stream.iterate(1, num -> num + 1)
+            .skip((page - 1) * pageSize)
+            .limit(pageSize)
+            .collect(Collectors.toList());
+    assertEquals(List.of(4, 5, 6), lst);
+}
+```
+
+##### sorted
+
+如果需要对`Stream`的元素进行排序，可以使用`sort`：
+
+```java
+@Test
+void testSorted() {
+    List<Integer> lst = Stream.of(3, 1, 2)
+            .sorted()
+            .collect(Collectors.toList());
+    assertEquals(List.of(1, 2, 3), lst);
+}
+
+@Test
+void testSortedWithComparator() {
+    List<Integer> lst = Stream.of(3, 1, 2)
+            .sorted(Comparator.<Integer>naturalOrder().reversed())
+            .collect(Collectors.toList());
+    assertEquals(List.of(3, 2, 1), lst);
+}
+```
+
+##### peek
+
+如果我们想在链式的中间调用中打印以方便调试，可以使用`peek`：
+
+```java
+@Test
+void testPeek() {
+  List<Integer> lst = Stream.of(1, 2, 3)
+          .peek(System.out::print) //第一个peek
+          .map(num -> num * num)
+          .peek(System.out::print) //第二个peek
+          .collect(Collectors.toList());
+  assertEquals(List.of(1, 4, 9), lst);
+}
+```
+
+这里`peek`打印出来的结果是`112439`，因为对`Stream`里的各个元素的操作是顺序执行的。
+
+##### 惰性求值
+
+惰性求值在一些情况下会减少计算量，如`findFirst`终止操作并不要求遍历所有元素，只需要找到第一个符合条件的元素即可：
+
+```java
+@Test
+void testLazyEvaluation() {
+    Optional<Integer> first = Stream.of(1, 2, 3, 4, 5)
+      			.map(num -> num * num)
+            .peek(System.out::print)
+            .filter(num -> num % 2 == 0)
+            .findFirst();
+    assertEquals(Optional.of(2), first);
+}
+```
+
+这里`peek`方法打印出来的的结果是`14`，意味着在上面的中间操作`map`和`peek`并没有对所有`Stream`中的元素进行计算，其可以类似理解为所有的中间操作在一个循环里，如：
+
+```java
+List<Integer> lst = List.of(1, 2, 3, 4, 5);
+for (Integer num : lst) { //顺序访问列表
+    int temp = num * num; //对元素做map操作
+    System.out.print(temp);
+    if (temp % 2 == 0) { //对元素做filter检查
+        break; //如果找到第一个，就退出循环
+    }
+}
+```
+
+##### 其他
+
+另外，`Stream`接口中还提供了一些操作来支持对Java原始类型的支持，如`mapToInt`、 `mapToLong`、 `mapToDouble`、 `flatmapToInt`、 `flatmapToLong`、 `flatmapToDouble`。这些方法就生成`IntStream`、`DoubleStream`和`LongStream`。
+
+而`IntStream`、`DoubleStream`和`LongStream`中也提供了`mapToObj`和`boxed`方法将生成`Stream`。
+
+```java
+IntStream intStream = Stream.of(1, 2, 3).mapToInt(num -> num);
+Stream<Integer> stream = IntStream.range(1, 4).mapToObj(num -> num);
+Stream<Integer> stream2 = IntStream.range(1, 4).boxed();
+```
 
 #### Stream的并行处理
+
+上面的对`Stream`的各种操作默认是一个线程下顺序执行，意味着在一个线程下，`Stream`里的元素被一次访问和计算。如果`Stream`中有大量的元素，顺序执行的时间会比较长，`Stream`提供了`parallel`方法使得`Stream`在使用多线程并行计算结果：
+
+```java
+@Test
+void testParallel() {
+    System.setProperty("java.util.concurrent.ForkJoinPool.common.parallelism", "2");
+    BiConsumer<List<Integer>, Integer> accumulator = (lst, e) -> lst.add(e);
+    BiConsumer<List<Integer>, List<Integer>> combiner = (lst1, lst2) -> {
+        System.out.println("Combiner: " + Thread.currentThread().getName() + ", lst1=" + lst1 + ", lst2=" + lst2);
+        lst1.addAll(lst2);
+    };
+    List<Integer> lst = Stream.of(1, 2, 3, 4, 5)
+            .parallel()
+            .map(num -> num * num)
+            .peek(num -> {
+                System.out.println(Thread.currentThread().getName() + ": " + num);
+            })
+            .collect(ArrayList::new, accumulator, combiner);
+    assertEquals(List.of(1, 4, 9, 16, 25), lst);
+}
+```
+
+在笔者的电脑上运行这个测试用例，打印出来的结果是：
+
+```java
+ForkJoinPool.commonPool-worker-3: 25
+ForkJoinPool.commonPool-worker-1: 4
+main: 9
+ForkJoinPool.commonPool-worker-1: 1
+ForkJoinPool.commonPool-worker-3: 16
+Combiner: ForkJoinPool.commonPool-worker-1, lst1=[1], lst2=[4]
+Combiner: ForkJoinPool.commonPool-worker-3, lst1=[16], lst2=[25]
+Combiner: ForkJoinPool.commonPool-worker-3, lst1=[9], lst2=[16, 25]
+Combiner: ForkJoinPool.commonPool-worker-3, lst1=[1, 4], lst2=[9, 16, 25]
+```
+
+从这个例子，可以看出：
+
+- 并行`Stream`底层使用`ForkJoinPool`的`commonPool`来提供线程参与并行计算，`commonPool`的默认线程个数与计算机的CPU核数有关。
+- `collect`自行处理了多线程`combine`结果时的同步问题，`ArrayList`并不是线程安全的，但是这里的`collect`调用方式是线程安全的。
+- `main`线程也会参与到计算当中。
+- 计算结果在多线程上进行`combine`。
+
+意外的是，虽然做了并行操作，但是我们得到的结果元素顺序还是和初始`Stream`中的元素顺序保持一致。
+
+
 
