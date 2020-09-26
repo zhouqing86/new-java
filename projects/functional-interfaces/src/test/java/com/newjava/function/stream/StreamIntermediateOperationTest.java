@@ -13,7 +13,7 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class TestStreamIntermediateOperation {
+public class StreamIntermediateOperationTest {
     @Test
     void testMap() {
         List<Integer> lst = Stream.of(1, 2, 3)

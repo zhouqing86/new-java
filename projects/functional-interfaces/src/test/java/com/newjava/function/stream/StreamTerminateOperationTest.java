@@ -14,7 +14,7 @@ import java.util.stream.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class TestStreamTerminateOperation {
+public class StreamTerminateOperationTest {
     @Test
     void testStreamBasicUsage() {
         Stream.of(1, 2, 3).parallel().reduce(0, Integer::sum);

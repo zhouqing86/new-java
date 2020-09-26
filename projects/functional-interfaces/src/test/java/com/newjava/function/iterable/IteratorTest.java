@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Iterator;
 
-public class TestIterator {
+public class IteratorTest {
     @Test
     void testFunctionalIterator() {
     }

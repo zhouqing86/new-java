@@ -1,4 +1,4 @@
-# 目录
+# Summary
 
 * [前言](README.md)
 * [第一章 Java的新世界](Chapter1/README.md)
@@ -27,9 +27,8 @@
     * [第2节：Lambda表达式](Chapter5/lambda.md)
     * [第3节：Stream集合操作](Chapter5/stream.md)
     * [第4节：无处不在的函数式](Chapter5/functional_everywhere.md)
-    * [第5节：不可变性](Chapter5/.md)
-    * [第6节：函数式的常用术语](Chapter5/functional_common_theory.md)
-* [第六章 函数式Java衍生的模式](Chapter6/README.md)
+    * [第5节：函数式的常用术语](Chapter5/functional_common_theory.md)
+* [第六章 函数式Java的精进](Chapter6/README.md)
     * [第1节：高阶函数](Chapter6/high_order_function.md)
     * [第2节：计算缓存](Chapter6/cache.md)
     * [第3节：懒加载](Chapter6/lazy_load.md)

@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Optional;
 
-public class TestOptional {
+public class OptionalTest {
     @Test
     void testOptionalIfPresent() {
         Optional.ofNullable(1).ifPresent(System.out::println);

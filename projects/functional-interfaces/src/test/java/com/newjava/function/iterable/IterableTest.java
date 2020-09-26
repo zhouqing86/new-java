@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-public class TestIterable {
+public class IterableTest {
     @Test
     void testFunctionalIterable() {
         Iterable<Integer> iterable = () -> List.of(1, 2, 3).iterator();
