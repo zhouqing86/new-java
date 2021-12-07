@@ -96,5 +96,34 @@ Java14于2020年3月17日发布，其包括的新特性或改进如：
   record Point(int x, int y) { } //其将自动生成构造方法，以及getter, setter，equals(), hashCode(), toString()等方法
   ```
 
-  
+
+## Java15
+
+Java15于2020年9月15日发布，其包括的新特性或改进如：
+
+- 封闭类（Sealed Classes），防止其他类或接口扩展或实现它们。目前为预览版本。
+
+- 准备禁用和废除偏向锁。JDK15中默认禁用偏向锁，并弃用所有相关的命令行选项。
+
+- 文本块：
+
+  ```java
+  String html = """
+  <html>
+    <body>
+    	Hello World!
+    </body>
+  </html>
+  """
+  ```
+
+
+
+## Java16
+
+Java16于2021年3月16日发布，其包括的新特性或改进如：
+
+- 向量操作的支持，目前还是孵化器版本。
+- JDK源代码的管理从Mercurial 迁移到 Git，OpenJDK的代码现由Github托管。
+- Java14引入的`record`关键字终于转正了。
 

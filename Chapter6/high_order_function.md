@@ -201,7 +201,7 @@ public static <T, U extends Comparable<? super U>> Comparator<T> comparing(
 }
 ```
 
-一个简单的函数，且让代码复用变得简单，而且代码是易读的：
+这么一个简单的函数，让代码复用变得简单，且代码更易读：
 
 ```java
 @Test

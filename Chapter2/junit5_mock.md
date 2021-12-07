@@ -1,6 +1,47 @@
 # 第3节：Mock
 
-> 先思考你的程序是否可以改进！不到万不得已不要使用Mock！
+> 先思考你的程序是否可以改进！不要轻易使用Mock！
+
+#### Mockito的使用
+
+首先在`build.gradle`中添加`Mockito`的依赖，如：
+
+```groovy
+dependencies { 
+	testImplementation "org.mockito:mockito-core:3.+" 
+}
+```
+
+当某个类中的方法有副作用操作（如读写数据库、需要发送网络请求等），而调用此有副作用的方法的单元测试并不关注数据库的存储或如何发送网络请求，单元测试中往往引入`Mock`来让测试更加容易。
+
+譬如存在如下一个`BaiduTransport`的类，其`query`方法就是从百度中查询某个字段:
+
+```java
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+
+public class BaiduTransport {
+    public String query(String query) {
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://www.baidu.com/s?wd="+query)).build();
+        HttpResponse.BodyHandler<String> responseBodyHandler = HttpResponse.BodyHandlers.ofString();
+        try {
+            return client.send(request, responseBodyHandler).body();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "";
+        }
+    }
+}
+```
+
+
+
+
+
+#### 函数型参数解决Mock问题
 
 某一个类依赖一些重量级的类、或需要网络调用、或需要调用第三方的重量级静态方法。这里定义一个`BigObject`来模拟重量级的类，这里`BigObject`没有赋予确定某个业务含义，其代表一类巨型对象：需要处理复杂输入参数，需要多个步骤的构造，提供一些接口以供第三方调用:
 
@@ -155,7 +196,7 @@ void testProcess() {
 }
 ```
 
-完美！`process`方法现在依赖度的是一个函数式接口，而函数式接口我们几乎不需要构造成本。但是我们还有需要改进的地方么？当然， 如果上面的重构开发人员不注意（粗心）把`calPrefix(rawPrefix)`和`calSuffix(rawSuffix)`写反了位置，我们的测试检查不出来这个问题。解决办法是：
+`process`方法现在依赖度的是一个函数式接口，而函数式接口我们几乎不需要构造成本。但是我们还有需要改进的地方么？当然， 如果上面的重构开发人员不注意（粗心）把`calPrefix(rawPrefix)`和`calSuffix(rawSuffix)`写反了位置，我们的测试检查不出来这个问题。解决办法是：
 
 ```java
 BinaryOperator<String> calculator = (prefix, suffix) -> {
